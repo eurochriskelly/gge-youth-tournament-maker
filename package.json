@@ -1,0 +1,16 @@
+{
+  "name": "gge-youth-tournament-analyzer",
+  "version": "1.0.0",
+  "description": "Analyze youth tournament data and calculate age group statistics",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js --data 2025-02"
+  },
+  "dependencies": {
+    "minimist": "^1.2.8"
+  },
+  "keywords": ["tournament", "youth", "football", "analysis"],
+  "author": "",
+  "license": "MIT"
+}
