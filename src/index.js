@@ -185,7 +185,7 @@ try {
   console.log(girlsSeparatorLine);
 
   for (const [range, data] of Object.entries(stats)) {
-    if (data.total >= 13) {
+    if (data.total >= 13 && data.girls >= 13) {
       const girlsClubValues = clubCodes.map(code => data.girlsClubs[code] || 0).join('\t');
       console.log(`${data.ageCategory}\t\t${range}\t\t${data.girls}\t\t${girlsClubValues}`);
     }
