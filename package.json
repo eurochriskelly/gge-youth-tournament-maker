@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "node src/index.js --data 2025-02"
+    "test": "node src/index.js --data 2025-02 --groups u17/4,g16/3,g14/4,u14/3,u12/3,u10/3,u8/3,u6/4"
   },
   "dependencies": {
     "minimist": "^1.2.8"
