@@ -408,7 +408,14 @@ function calculateAgeSummary(players) {
             },
             players: []
           };
-         for (const range of groupInfo.ranges) {
+         const rangeKeys = [];
+         if (stats[groupInfo.rangeKey]) {
+           rangeKeys.push(groupInfo.rangeKey);
+         } else {
+           rangeKeys.push(...groupInfo.ranges);
+         }
+
+         for (const range of rangeKeys) {
            if (stats[range]) {
              const s = stats[range];
              aggregated.total += s.total;
@@ -470,11 +477,17 @@ function calculateAgeSummary(players) {
          }
          return acc;
        }, { participations: 0, removals: 0, loans: {} }) : null;
-       const totalStr = formatCount(stat.total, totalAdj);
+      const rawTotal = Object.values(stat.rawClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
+      const totalStr = formatCount(stat.total, totalAdj, rawTotal);
        const rangeStr = (stat.range || key).padEnd(10);
        const row = [stat.ageCategory.padEnd(10), rangeStr, totalStr.padEnd(10)];
         for (const code of clubCodes) {
-          const countStr = formatCount(stat.clubs[code] || 0, stat.adjustments ? stat.adjustments.clubs[code] : null, stat.rawClubs[code] || 0);
+          const countStr = formatCount(
+            stat.clubs[code] || 0,
+            stat.adjustments ? stat.adjustments.clubs[code] : null,
+            stat.rawClubs[code] || 0,
+            code
+          );
           row.push(countStr.padEnd(10));
         }
        console.log(row.join(' | '));
@@ -496,11 +509,17 @@ function calculateAgeSummary(players) {
          }
          return acc;
        }, { participations: 0, removals: 0, loans: {} }) : null;
-       const totalStr = formatCount(stat.girls, totalAdj);
+      const rawGirlsTotal = Object.values(stat.rawGirlsClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
+      const totalStr = formatCount(stat.girls, totalAdj, rawGirlsTotal);
        const rangeStr = (stat.range || key).padEnd(10);
        const row = [stat.ageCategory.padEnd(10), rangeStr, totalStr.padEnd(10)];
         for (const code of clubCodes) {
-          const countStr = formatCount(stat.girlsClubs[code] || 0, stat.adjustments ? stat.adjustments.girlsClubs[code] : null, stat.rawGirlsClubs[code] || 0);
+          const countStr = formatCount(
+            stat.girlsClubs[code] || 0,
+            stat.adjustments ? stat.adjustments.girlsClubs[code] : null,
+            stat.rawGirlsClubs[code] || 0,
+            code
+          );
           row.push(countStr.padEnd(10));
         }
        console.log(row.join(' | '));
@@ -531,16 +550,26 @@ function calculateAgeSummary(players) {
      }
    }
 
-    function formatCount(count, adjustments, raw) {
+    function formatCount(count, adjustments, raw, code) {
       if (!adjustments) return count.toString();
-      const parts = [];
-      if (adjustments.participations) parts.push(`+${adjustments.participations}`);
-      if (adjustments.removals) parts.push(`-${adjustments.removals}`);
-      for (const inc in adjustments.incoming) {
-        parts.push(`+${adjustments.incoming[inc]}${inc}`);
+      const details = [];
+      if (typeof raw === 'number' && !Number.isNaN(raw)) {
+        const rawLabel = code ? `${raw}${code}` : raw.toString();
+        details.push(rawLabel);
       }
-      for (const loan in adjustments.loans) {
-        parts.push(`-${adjustments.loans[loan]}${loan}`);
+      if (adjustments.participations) {
+        details.push(`+${adjustments.participations}!`);
       }
-      return `${count}(${raw}${parts.length ? ',' + parts.join(',') : ''})`;
+      const incomingClubs = Object.keys(adjustments.incoming || {}).sort();
+      for (const inc of incomingClubs) {
+        details.push(`+${adjustments.incoming[inc]}${inc}`);
+      }
+      if (adjustments.removals) {
+        details.push(`-${adjustments.removals}/`);
+      }
+      const loanClubs = Object.keys(adjustments.loans || {}).sort();
+      for (const loan of loanClubs) {
+        details.push(`-${adjustments.loans[loan]}${loan}`);
+      }
+      return details.length ? `${count}(${details.join(',')})` : `${count}`;
     }
