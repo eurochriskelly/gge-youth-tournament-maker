@@ -457,75 +457,110 @@ function calculateAgeSummary(players) {
        }
      }
 
-     // combined table
-     console.log('\nCombined Table:');
-     const header = ['Category', 'Range', 'Total', ...clubCodes];
-     console.log(header.map(h => h.padEnd(10)).join(' | '));
-     console.log('-'.repeat(header.map(h => h.padEnd(10)).join(' | ').length));
+      const header = ['Category', 'Range', 'Total', ...clubCodes];
       const keys = Object.keys(outputStats).sort((a, b) => {
         const numA = parseInt(a.substring(1));
         const numB = parseInt(b.substring(1));
         return numB - numA;
       });
-     for (const key of keys) {
-       const stat = outputStats[key];
-       if (!hasGroups && stat.total < 13) continue;
-       if (hasGroups && stat.ageCategory.startsWith('g')) continue;
-       const totalAdj = stat.adjustments ? Object.values(stat.adjustments.clubs).reduce((acc, adj) => {
-         acc.participations += adj.participations;
-         acc.removals += adj.removals;
-         for (const loan in adj.loans) {
-           acc.loans[loan] = (acc.loans[loan] || 0) + adj.loans[loan];
-         }
-         return acc;
-       }, { participations: 0, removals: 0, loans: {} }) : null;
-      const rawTotal = Object.values(stat.rawClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
-      const totalStr = formatCount(stat.total, totalAdj, rawTotal);
-       const rangeStr = (stat.range || key).padEnd(10);
-       const row = [stat.ageCategory.padEnd(10), rangeStr, totalStr.padEnd(10)];
-        for (const code of clubCodes) {
-          const countStr = formatCount(
-            stat.clubs[code] || 0,
-            stat.adjustments ? stat.adjustments.clubs[code] : null,
-            stat.rawClubs[code] || 0,
-            code
-          );
-          row.push(countStr.padEnd(10));
-        }
-       console.log(row.join(' | '));
-     }
 
-     // girls-only table
-     console.log('\nGirls-Only Table:');
-     console.log(header.map(h => h.padEnd(10)).join(' | '));
-     console.log('-'.repeat(header.map(h => h.padEnd(10)).join(' | ').length));
-     for (const key of keys) {
-       const stat = outputStats[key];
-       if (!hasGroups && stat.girls < 13) continue;
-       if (hasGroups && !stat.ageCategory.startsWith('g')) continue;
-       const totalAdj = stat.adjustments ? Object.values(stat.adjustments.girlsClubs).reduce((acc, adj) => {
-         acc.participations += adj.participations;
-         acc.removals += adj.removals;
-         for (const loan in adj.loans) {
-           acc.loans[loan] = (acc.loans[loan] || 0) + adj.loans[loan];
-         }
-         return acc;
-       }, { participations: 0, removals: 0, loans: {} }) : null;
-      const rawGirlsTotal = Object.values(stat.rawGirlsClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
-      const totalStr = formatCount(stat.girls, totalAdj, rawGirlsTotal);
-       const rangeStr = (stat.range || key).padEnd(10);
-       const row = [stat.ageCategory.padEnd(10), rangeStr, totalStr.padEnd(10)];
-        for (const code of clubCodes) {
-          const countStr = formatCount(
-            stat.girlsClubs[code] || 0,
-            stat.adjustments ? stat.adjustments.girlsClubs[code] : null,
-            stat.rawGirlsClubs[code] || 0,
-            code
-          );
-          row.push(countStr.padEnd(10));
+      // Collect rows for both tables
+      const combinedRows = [];
+      const girlsRows = [];
+
+      for (const key of keys) {
+        const stat = outputStats[key];
+
+        // Combined row
+        if (!hasGroups && stat.total < 13) {
+          // skip
+        } else if (hasGroups && stat.ageCategory.startsWith('g')) {
+          // skip
+        } else {
+          const totalAdj = stat.adjustments ? Object.values(stat.adjustments.clubs).reduce((acc, adj) => {
+            acc.participations += adj.participations;
+            acc.removals += adj.removals;
+            for (const loan in adj.loans) {
+              acc.loans[loan] = (acc.loans[loan] || 0) + adj.loans[loan];
+            }
+            return acc;
+          }, { participations: 0, removals: 0, loans: {} }) : null;
+          const rawTotal = Object.values(stat.rawClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
+          const totalStr = formatCount(stat.total, totalAdj, rawTotal);
+          const rangeStr = (stat.range || key);
+          const row = [stat.ageCategory, rangeStr, totalStr];
+          for (const code of clubCodes) {
+            const countStr = formatCount(
+              stat.clubs[code] || 0,
+              stat.adjustments ? stat.adjustments.clubs[code] : null,
+              stat.rawClubs[code] || 0,
+              code
+            );
+            row.push(countStr);
+          }
+          combinedRows.push(row);
         }
-       console.log(row.join(' | '));
-     }
+
+        // Girls row
+        if (!hasGroups && stat.girls < 13) {
+          // skip
+        } else if (hasGroups && !stat.ageCategory.startsWith('g')) {
+          // skip
+        } else {
+          const totalAdj = stat.adjustments ? Object.values(stat.adjustments.girlsClubs).reduce((acc, adj) => {
+            acc.participations += adj.participations;
+            acc.removals += adj.removals;
+            for (const loan in adj.loans) {
+              acc.loans[loan] = (acc.loans[loan] || 0) + adj.loans[loan];
+            }
+            return acc;
+          }, { participations: 0, removals: 0, loans: {} }) : null;
+          const rawGirlsTotal = Object.values(stat.rawGirlsClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
+          const totalStr = formatCount(stat.girls, totalAdj, rawGirlsTotal);
+          const rangeStr = (stat.range || key);
+          const row = [stat.ageCategory, rangeStr, totalStr];
+          for (const code of clubCodes) {
+            const countStr = formatCount(
+              stat.girlsClubs[code] || 0,
+              stat.adjustments ? stat.adjustments.girlsClubs[code] : null,
+              stat.rawGirlsClubs[code] || 0,
+              code
+            );
+            row.push(countStr);
+          }
+          girlsRows.push(row);
+        }
+      }
+
+      // Compute max widths
+      const maxWidths = new Array(header.length).fill(0);
+      for (let i = 0; i < header.length; i++) {
+        maxWidths[i] = header[i].length;
+      }
+      for (const row of combinedRows.concat(girlsRows)) {
+        for (let i = 0; i < row.length; i++) {
+          maxWidths[i] = Math.max(maxWidths[i], row[i].length);
+        }
+      }
+
+      // combined table
+      console.log('\nCombined Table:');
+      const headerLine = header.map((h, i) => h.padEnd(maxWidths[i])).join(' | ');
+      console.log(headerLine);
+      console.log('-'.repeat(headerLine.length));
+      for (const row of combinedRows) {
+        const rowLine = row.map((cell, i) => cell.padEnd(maxWidths[i])).join(' | ');
+        console.log(rowLine);
+      }
+
+      // girls-only table
+      console.log('\nGirls-Only Table:');
+      console.log(headerLine);
+      console.log('-'.repeat(headerLine.length));
+      for (const row of girlsRows) {
+        const rowLine = row.map((cell, i) => cell.padEnd(maxWidths[i])).join(' | ');
+        console.log(rowLine);
+      }
 
      // amalgamated teams
      console.log('\nAmalgamated Teams Table:');
