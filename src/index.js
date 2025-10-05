@@ -317,8 +317,10 @@ function calculateStatistics(players, filterConfig, rawMode) {
                if (!adjustments.girlsClubs[loanClub].incoming[clubCode]) adjustments.girlsClubs[loanClub].incoming[clubCode] = 0
                adjustments.girlsClubs[loanClub].incoming[clubCode]++
              }
-             clubCounts[clubCode]++
-             if (player.isGirl) girlsClubCounts[clubCode]++
+             if (clubCounts[loanClub] !== undefined) {
+               clubCounts[loanClub]++
+               if (player.isGirl) girlsClubCounts[loanClub]++
+             }
              participatingPlayers.push(player)
              continue
            }
