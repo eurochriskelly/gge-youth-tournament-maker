@@ -457,7 +457,7 @@ function calculateAgeSummary(players) {
        }
      }
 
-      const header = ['Category', 'Range', 'Total', ...clubCodes];
+      const header = ['Category', 'Range', 'num teams', 'Total', ...clubCodes];
       const keys = Object.keys(outputStats).sort((a, b) => {
         const numA = parseInt(a.substring(1));
         const numB = parseInt(b.substring(1));
@@ -488,7 +488,8 @@ function calculateAgeSummary(players) {
           const rawTotal = Object.values(stat.rawClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
           const totalStr = formatCount(stat.total, totalAdj, rawTotal);
           const rangeStr = (stat.range || key);
-          const row = [stat.ageCategory, rangeStr, totalStr];
+          const numTeams = clubCodes.filter(code => (stat.clubs[code] || 0) > 0).length.toString();
+          const row = [stat.ageCategory, rangeStr, numTeams, totalStr];
           for (const code of clubCodes) {
             const countStr = formatCount(
               stat.clubs[code] || 0,
@@ -518,7 +519,8 @@ function calculateAgeSummary(players) {
           const rawGirlsTotal = Object.values(stat.rawGirlsClubs || {}).reduce((acc, value) => acc + (value || 0), 0);
           const totalStr = formatCount(stat.girls, totalAdj, rawGirlsTotal);
           const rangeStr = (stat.range || key);
-          const row = [stat.ageCategory, rangeStr, totalStr];
+          const numTeams = clubCodes.filter(code => (stat.girlsClubs[code] || 0) > 0).length.toString();
+          const row = [stat.ageCategory, rangeStr, numTeams, totalStr];
           for (const code of clubCodes) {
             const countStr = formatCount(
               stat.girlsClubs[code] || 0,
