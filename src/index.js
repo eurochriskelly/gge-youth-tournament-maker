@@ -251,20 +251,31 @@ function calculateStatistics(players, filterConfig, rawMode) {
     // Calculate age category (u + (2025 - minYear))
     const ageCategory = `u${2025 - group.minYear}`;
 
-    const clubCounts = {};
-    const girlsClubCounts = {};
-    const adjustments = rawMode ? null : { clubs: {}, girlsClubs: {} };
+     const clubCounts = {};
+     const girlsClubCounts = {};
+     const rawClubCounts = {};
+     const rawGirlsClubCounts = {};
+     const adjustments = rawMode ? null : { clubs: {}, girlsClubs: {} };
 
-    // Initialize counts
-    for (const club of clubs) {
-      const code = clubCodeMap[club];
-      clubCounts[code] = 0;
-      girlsClubCounts[code] = 0;
-      if (!rawMode) {
-        adjustments.clubs[code] = { participations: 0, removals: 0, loans: {} };
-        adjustments.girlsClubs[code] = { participations: 0, removals: 0, loans: {} };
-      }
-    }
+     // Initialize counts
+     for (const club of clubs) {
+       const code = clubCodeMap[club];
+       clubCounts[code] = 0;
+       girlsClubCounts[code] = 0;
+       rawClubCounts[code] = 0;
+       rawGirlsClubCounts[code] = 0;
+       if (!rawMode) {
+         adjustments.clubs[code] = { participations: 0, removals: 0, loans: {} };
+         adjustments.girlsClubs[code] = { participations: 0, removals: 0, loans: {} };
+       }
+     }
+
+     // Count raw players
+     for (const player of groupPlayers) {
+       const clubCode = clubCodeMap[player.club];
+       rawClubCounts[clubCode]++;
+       if (player.isGirl) rawGirlsClubCounts[clubCode]++;
+     }
 
       const participatingPlayers = [];
 
@@ -314,15 +325,17 @@ function calculateStatistics(players, filterConfig, rawMode) {
         }
       }
 
-      stats[group.label] = {
-        ageCategory,
-        total: participatingPlayers.length,
-        girls: participatingPlayers.filter(p => p.isGirl).length,
-        clubs: clubCounts,
-        girlsClubs: girlsClubCounts,
-        adjustments,
-        players: participatingPlayers
-      };
+       stats[group.label] = {
+         ageCategory,
+         total: participatingPlayers.length,
+         girls: participatingPlayers.filter(p => p.isGirl).length,
+         clubs: clubCounts,
+         girlsClubs: girlsClubCounts,
+         rawClubs: rawClubCounts,
+         rawGirlsClubs: rawGirlsClubCounts,
+         adjustments,
+         players: participatingPlayers
+       };
   }
 
    return { stats, clubCodes, clubCodeMap };
@@ -376,28 +389,32 @@ function calculateAgeSummary(players) {
        for (const cat of filterConfig.groupOrder) {
          const groupInfo = filterConfig.combined.get(cat) || filterConfig.girlsOnly.get(cat);
          if (!groupInfo) continue;
-         const aggregated = {
-           ageCategory: cat,
-           range: groupInfo.rangeKey,
-           total: 0,
-           girls: 0,
-           clubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
-           girlsClubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
-           adjustments: rawMode ? null : {
-             clubs: Object.fromEntries(clubCodes.map(code => [code, { participations: 0, removals: 0, loans: {} }])),
-             girlsClubs: Object.fromEntries(clubCodes.map(code => [code, { participations: 0, removals: 0, loans: {} }]))
-           },
-           players: []
-         };
+          const aggregated = {
+            ageCategory: cat,
+            range: groupInfo.rangeKey,
+            total: 0,
+            girls: 0,
+            clubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
+            girlsClubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
+            rawClubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
+            rawGirlsClubs: Object.fromEntries(clubCodes.map(code => [code, 0])),
+            adjustments: rawMode ? null : {
+              clubs: Object.fromEntries(clubCodes.map(code => [code, { participations: 0, removals: 0, loans: {} }])),
+              girlsClubs: Object.fromEntries(clubCodes.map(code => [code, { participations: 0, removals: 0, loans: {} }]))
+            },
+            players: []
+          };
          for (const range of groupInfo.ranges) {
            if (stats[range]) {
              const s = stats[range];
              aggregated.total += s.total;
              aggregated.girls += s.girls;
-             for (const code of clubCodes) {
-               aggregated.clubs[code] += s.clubs[code] || 0;
-               aggregated.girlsClubs[code] += s.girlsClubs[code] || 0;
-             }
+              for (const code of clubCodes) {
+                aggregated.clubs[code] += s.clubs[code] || 0;
+                aggregated.girlsClubs[code] += s.girlsClubs[code] || 0;
+                aggregated.rawClubs[code] += s.rawClubs[code] || 0;
+                aggregated.rawGirlsClubs[code] += s.rawGirlsClubs[code] || 0;
+              }
              if (!rawMode) {
                for (const code of clubCodes) {
                  const adj = s.adjustments.clubs[code];
