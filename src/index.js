@@ -426,7 +426,11 @@ function calculateAgeSummary(players) {
      const header = ['Category', 'Range', 'Total', ...clubCodes];
      console.log(header.map(h => h.padEnd(10)).join(' | '));
      console.log('-'.repeat(header.map(h => h.padEnd(10)).join(' | ').length));
-     const keys = Object.keys(outputStats).sort();
+      const keys = Object.keys(outputStats).sort((a, b) => {
+        const numA = parseInt(a.substring(1));
+        const numB = parseInt(b.substring(1));
+        return numB - numA;
+      });
      for (const key of keys) {
        const stat = outputStats[key];
        if (!hasGroups && stat.total < 13) continue;
