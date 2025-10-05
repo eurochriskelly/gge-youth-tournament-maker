@@ -18,13 +18,14 @@ Each row represents a player. Columns are:
 3. **Year of Birth**: Integer (2008-2022 valid range)
 4. **Is Girl**: Non-blank (after trimming) means yes; blank means no
 5. **Default Age Group**: String like "u14" (derived from birth year, but may differ)
-6+. **Competition Data**: Symbols for each group in order provided by --groups:
+6+. **Competition Data**: Symbols for each group in order provided by --groups. These columns start immediately after the Default Age Group column.
    - '#': Illegal (child too old or wrong gender for this competition)
    - '@': Not recommended (child too young for this competition)
    - '/': Removal (child not participating in this competition)
    - '!': Addition (extra participation in this competition)
    - 'A','B','F','H','L', etc.: Loan to another club (e.g., 'L' for Luxembourg; child plays for that club in this competition)
-   - Blank or other: Normal participation for the home club
+   - Blank: Normal participation for the home club
+   - Other: Normal participation for the home club
 
 Example row:
 x    Frida Lawrence (GK)    2011    x    u14    /    L    #    #    #
