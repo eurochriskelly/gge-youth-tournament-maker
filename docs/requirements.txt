@@ -1,0 +1,157 @@
+# Requirements for GGE Youth Tournament Analyzer
+
+## Overview
+This software analyzes youth tournament data from TSV files (exported from Google Sheets templates provided to clubs). It calculates age group statistics, handles eligibility markers ('#' for illegal, '@' for not recommended), adjustments (removals, additions, loans to other clubs), and outputs summaries and tables to ensure fair distribution of players across categories for sufficient games. It supports filtering by tournament groups, raw mode, and debug mode.
+
+## Input Specifications
+
+### Data Files
+- **Location**: `data/<folder>/` (e.g., `data/2025-02/`)
+- **Format**: One TSV file per club (e.g., `amsterdam.tsv`)
+- **Encoding**: UTF-8
+- **Delimiter**: Tab (\t)
+
+### TSV File Structure
+Each row represents a player. Columns are:
+1. **Attendance Confirmed**: 'x' means confirmed; blank or other means unconfirmed (skip if not 'x')
+2. **Player Name**: Full name, may include position in parentheses (e.g., "Frida Lawrence (GK)") – remove position indicators during parsing
+3. **Year of Birth**: Integer (2008-2022 valid range)
+4. **Is Girl**: Non-blank (after trimming) means yes; blank means no
+5. **Default Age Group**: String like "u14" (derived from birth year, but may differ)
+6+. **Competition Data**: Symbols for each group in order provided by --groups:
+   - '#': Illegal (child too old or wrong gender for this competition)
+   - '@': Not recommended (child too young for this competition)
+   - '/': Removal (child not participating in this competition)
+   - '!': Addition (extra participation in this competition)
+   - 'A','B','F','H','L', etc.: Loan to another club (e.g., 'L' for Luxembourg; child plays for that club in this competition)
+   - Blank or other: Normal participation for the home club
+
+Example row:
+x    Frida Lawrence (GK)    2011    x    u14    /    L    #    #    #
+
+### Command Line Arguments
+- `--data <folder>`: Required; path to data folder
+- `--groups <definitions>`: Optional; comma-separated list of "category/count" (e.g., "u17/4,g16/3,g14/4,u14/3,u12/3,u10/3,u8/3,u6/4")
+  - Category: 'u' (mixed gender) or 'g' (girls-only) + age (e.g., u17)
+  - Count: Number of competitions for that category
+- `--raw`: Optional; output raw counts without adjustments
+- `--debug`: Optional; output JSON instead of tables
+
+### Groups Mapping
+- Groups define columns 6+ in TSV files.
+- Example: --groups u17/4,g16/3,g14/4,u14/3,u12/3,u10/3,u8/3,u6/4
+  - Column 6: u17
+  - Column 7: g16
+  - Column 8: g14
+  - Column 9: u14
+  - Column 10: u12
+  - Column 11: u10
+  - Column 12: u8
+  - Column 13: u6
+- Age calculation: u17 means born in 2008 (2025 - 17 = 2008)
+- Each group spans 'count' birth years (e.g., u17/4: 2008-2011)
+
+## Functional Requirements
+
+### 1. Data Loading and Validation
+- Read all .tsv files in the data folder.
+- Parse each row into player data.
+- Skip unconfirmed players (column 1 != 'x').
+- Validate birth year: 2008-2022; skip invalid.
+- Determine isGirl: trim column 4, non-empty = true.
+- Clean name: remove position indicators like "(GK)".
+- Pad competition data to total columns (sum of group counts) with '#'.
+
+### 2. Internal Data Structures
+Parsed data stored in:
+- **allPlayers**: Array of player objects.
+- **clubData**: Object { clubName: [playerObjects] }
+
+Player object structure:
+{
+  club: string,  // e.g., "amsterdam"
+  id: string,  // 'N/A' if not provided
+  name: string,  // cleaned name
+  birthYear: number,
+  isGirl: boolean,
+  ageBracket: string,  // from column 5
+  competitionData: object  // { groupKey: symbol }, e.g., { u17: '@', g16: '#', ... }
+}
+
+Example clubData structure:
+{
+  "amsterdam": [
+    {
+      confirmed: true,
+      name: "Frida Lawrence",
+      birthYear: 2011,
+      girlMarker: true,
+      ageBracket: "u14",
+      competitionData: {
+        u17: '/',
+        g16: 'L',
+        g14: '#',
+        u14: '#',
+        u12: '#',
+        u10: '#',
+        u8: '#',
+        u6: '#'
+      }
+    },
+    // more players...
+  ],
+  // more clubs...
+}
+
+### 3. Age Group Generation
+- Generate ranges: 1-4 year spans from 2008-2022 (e.g., "2008-2008", "2008-2009", etc.)
+- Each range has label (e.g., "2008-2011"), minYear, maxYear, ageCategory (e.g., "u17" for 2008-2011)
+
+### 4. Statistics Calculation
+- For each age range/group: count total players, girls, club breakdowns, considering eligibility and adjustments.
+- Handle eligibility markers:
+  - '#': Exclude from count (illegal participation)
+  - '@': Exclude from count (not recommended)
+- Apply adjustments from competitionData:
+  - '/': Removal (exclude from count)
+  - '!': Addition (include extra)
+  - 'A','B','F','H','L', etc.: Loan to specified club (transfer player count to that club for this competition)
+- Support multiple competitions per player (loans allow playing for different clubs).
+- Separate stats for combined and girls-only.
+- Goal: Ensure sufficient players per category for games (e.g., highlight imbalances).
+- In raw mode: no adjustments, show raw eligibility data.
+
+### 5. Output Requirements
+- **Age Breakdown**: "u17: 3, u16: 1, ..." (sorted descending age)
+- **Tables** (if not debug):
+  - Combined: Category, Range, Total Players, Club Counts
+  - Girls-Only: Category, Range, Girls, Club Counts
+  - Only show ranges with >=13 players (unless groups specified) to highlight categories with sufficient games
+  - Adjustments in parentheses (e.g., "15(2!, -1/)") unless raw
+  - Highlight potential imbalances (e.g., low counts) for distribution adjustments
+- **Amalgamated Teams Table**: For each category/range, show available players per amalgamated team (home club + loans - removals). Include reasons for removals (e.g., scheduling conflicts, too many matches, size concerns). This table enables forming amalgamated teams and generating fixtures.
+- **Groups Mode**: Aggregate by groups, show per category to verify tournament structure
+- **Debug Mode**: JSON { statistics: { category: { range, numPlayers, clubs } }, clubData }
+
+### 6. Error Handling
+- Exit with error if data folder missing.
+- Skip invalid rows gracefully.
+- Provide usage message if --data missing.
+
+## Goals
+- Distribute players fairly across categories to ensure enough games in each.
+- Identify imbalances (e.g., too few players in a category).
+- Account for eligibility, loans, and adjustments to optimize tournament structure.
+- Provide clear outputs for organizers to adjust registrations.
+
+## Supporting Requirements
+- **Dependencies**: minimist, fs, path
+- **Code Style**: As per AGENTS.md (imports, formatting, types, naming, error handling)
+- **Build/Test**: npm scripts
+- **Future**: GUI (make-a-gui.md), new format (new-format.md)
+
+## Edge Cases
+- Missing columns: pad with '#'
+- Invalid symbols: treat as participating
+- No groups: default age ranges
+- Empty files: handle gracefully
