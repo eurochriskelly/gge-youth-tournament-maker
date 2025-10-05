@@ -137,9 +137,9 @@ function parsePlayerLine(line, clubName, totalColumns = 0, filterConfig = null) 
 
     if (filterConfig && filterConfig.groupOrder) {
       const obj = {};
-      filterConfig.groupOrder.forEach((cat, i) => {
-        obj[cat] = competitionData[i] || '#';
-      });
+       filterConfig.groupOrder.forEach((cat, i) => {
+         obj[cat] = competitionData[i];
+       });
       competitionData = obj;
     }
 
@@ -294,19 +294,19 @@ function calculateStatistics(players, filterConfig, rawMode) {
             participatingPlayers.push(player)
             continue
           }
-          if (/^[A-Z]$/.test(symbol)) {
-            const loanClub = symbol
-            if (!adjustments.clubs[clubCode].loans[loanClub]) adjustments.clubs[clubCode].loans[loanClub] = 0
-            adjustments.clubs[clubCode].loans[loanClub]++
-            if (player.isGirl) {
-              if (!adjustments.girlsClubs[clubCode].loans[loanClub]) adjustments.girlsClubs[clubCode].loans[loanClub] = 0
-              adjustments.girlsClubs[clubCode].loans[loanClub]++
-            }
-            clubCounts[loanClub] = (clubCounts[loanClub] || 0) + 1
-            if (player.isGirl) girlsClubCounts[loanClub] = (girlsClubCounts[loanClub] || 0) + 1
-            participatingPlayers.push(player)
-            continue
-          }
+           if (/^[A-Z]$/.test(symbol)) {
+             const loanClub = symbol
+             if (!adjustments.clubs[clubCode].loans[loanClub]) adjustments.clubs[clubCode].loans[loanClub] = 0
+             adjustments.clubs[clubCode].loans[loanClub]++
+             if (player.isGirl) {
+               if (!adjustments.girlsClubs[clubCode].loans[loanClub]) adjustments.girlsClubs[clubCode].loans[loanClub] = 0
+               adjustments.girlsClubs[clubCode].loans[loanClub]++
+             }
+             clubCounts[clubCode]++
+             if (player.isGirl) girlsClubCounts[clubCode]++
+             participatingPlayers.push(player)
+             continue
+           }
           // normal
           clubCounts[clubCode]++
           if (player.isGirl) girlsClubCounts[clubCode]++
